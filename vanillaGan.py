@@ -15,8 +15,6 @@ def bad_face_gen():
     return np.array([random.uniform(0, 0.7), random.uniform(0.3, 1), random.uniform(0.3, 1), random.uniform(0, 0.7)])
 
 
-
-
 # Examples of faces
 # good_faces_x = np.array([np.array([1, 0, 0, 1]),
 #                         np.array([0.9, 0.1, 0.2, 0.8]),
@@ -27,7 +25,6 @@ def bad_face_gen():
 
 faces_x = np.array([good_face_gen()])
 faces_y = np.array([1])
-
 
 
 for i in range(2000):
@@ -50,21 +47,35 @@ for i in range(200):
         test_faces_x = np.append(test_faces_x, [bad_face_gen()], axis = 0)
         test_faces_y = np.append(test_faces_y, [0], axis=0)
 
-model = tf.keras.models.Sequential([
+generator_discriminator = tf.keras.models.Sequential([
+  Dense(1, activation='relu'),
   Dense(4, activation='relu'),
   Dense(4, activation='relu'),
   Dense(4, activation='relu'),
+# =============================
+  Dense(4, activation='relu'),
+  Dense(4, activation='relu'),
+  Dense(4, activation='relu'),
+  Dense(4, activation='relu'),
+  Dense(1, activation='softmax')
+])
+
+
+discriminator = tf.keras.models.Sequential([
   Dense(4, activation='relu'),
   Dense(2, activation='softmax')
 ])
 
-model.compile(optimizer='adam',
+discriminator.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
 
-model.fit(faces_x, faces_y, epochs=30)
+discriminator.fit(faces_x, faces_y, epochs=5)
 
-result = model.predict(test_faces_x)
+result = discriminator.predict(test_faces_x)
+
+for i in discriminator.trainable_variables:
+    print(i)
 
 for i, r in enumerate(result):
     print(f"Was {r[0] < r[1]} and should be {test_faces_y[i] == 1} : {test_faces_x[i]} ")
