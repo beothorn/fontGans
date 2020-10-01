@@ -2,51 +2,67 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow.keras.layers import Flatten, Dense, Dropout, Reshape
 import numpy as np
+from numpy import random
 import time
 
-(train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.mnist.load_data()
 
-train_images = train_images.reshape(train_images.shape[0], 28, 28, 1).astype('float32')
-train_images = (train_images - 127.5) / 127.5  # Normalize the images to [-1, 1]
+# (train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.mnist.load_data()
 
-BUFFER_SIZE = 60000
-BATCH_SIZE = 256
+# train_images = train_images.reshape(train_images.shape[0], 28, 28, 1).astype('float32')
+# train_images = (train_images - 127.5) / 127.5  # Normalize the images to [-1, 1]
 
-train_dataset = tf.data.Dataset.from_tensor_slices((train_images, train_labels)).shuffle(BUFFER_SIZE).batch(BATCH_SIZE)
+# BUFFER_SIZE = 60000
+# BATCH_SIZE = 256
 
-noise_dim = 100
+# train_dataset = tf.data.Dataset.from_tensor_slices((train_images, train_labels)).shuffle(BUFFER_SIZE).batch(BATCH_SIZE)
 
+BATCH_SIZE = 3
 
-def make_generator_model():
-    return tf.keras.models.Sequential([
-        Dense(100, activation='relu'),
-        Dense(100, activation='relu'),
-        Dense(100, activation='relu'),
-        Dense(100, activation='relu'),
-        Dense(100, activation='relu'),
-        Dense(100, activation='relu'),
-        Dense(100, activation='relu'),
-        Dense(28 * 28, activation='relu'),
-        Reshape((28, 28, 1))
-    ])
+def good_face_gen():
+    return [[random.uniform(0.8, 1), random.uniform(0, 0.2)], [random.uniform(0, 0.2), random.uniform(0.8, 1)]]
 
 
-def make_discriminator_model():
-    return tf.keras.models.Sequential([
-        Dense(100, activation='relu'),
-        Dense(100, activation='relu'),
-        Dense(100, activation='relu'),
-        Dense(100, activation='relu'),
-        Dense(100, activation='relu'),
-        Dense(100, activation='relu'),
-        Dense(100, activation='relu'),
-        Dense(100, activation='relu'),
-        Dense(1)
-    ])
+def bad_face_gen():
+    return np.array(
+        [[random.uniform(0, 0.7), random.uniform(0.3, 1)], [random.uniform(0.3, 1), random.uniform(0, 0.7)]])
 
 
-generator = make_generator_model()
-discriminator = make_discriminator_model()
+faces_x = np.array([good_face_gen()])
+faces_y = np.array([1])
+
+for i in range(2000):
+    if random.uniform(0, 1) > 0.5:
+        faces_x = np.append(faces_x, [good_face_gen()], axis=0)
+        faces_y = np.append(faces_y, [1], axis=0)
+    else:
+        faces_x = np.append(faces_x, [bad_face_gen()], axis=0)
+        faces_y = np.append(faces_y, [0], axis=0)
+
+test_faces_x = np.array([good_face_gen()])
+test_faces_y = np.array([1])
+
+train_dataset = tf.data.Dataset.from_tensor_slices((faces_x, faces_y)).batch(BATCH_SIZE)
+test_dataset = tf.data.Dataset.from_tensor_slices((test_faces_x, test_faces_y)).batch(BATCH_SIZE)
+
+data_width = 2
+data_height = 2
+
+# ==========================================================
+EPOCHS = 10
+noise_array_size = 10
+
+discriminator = tf.keras.models.Sequential([
+    Dense(4, activation='relu', input_shape=(2, 2)),
+    Dense(4, activation='relu'),
+    Dense(1)
+])
+
+generator = tf.keras.models.Sequential([
+    Dense(4, activation='relu'),
+    Dense(4, activation='relu'),
+    Dense(data_width * data_height, activation='relu'),
+    Reshape((data_width, data_height, 1))
+])
 
 
 def generator_loss(generated_output):
@@ -69,23 +85,16 @@ def discriminator_loss(real_output, generated_output):
 generator_optimizer = tf.optimizers.Adam(1e-4)
 discriminator_optimizer = tf.optimizers.Adam(1e-4)
 
-EPOCHS = 50
-
-num_examples_to_generate = 16
-
-# We'll re-use this random vector used to seed the generator so
-# it will be easier to see the improvement over time.
-random_vector_for_generation = tf.random.normal([num_examples_to_generate,
-                                                 noise_dim])
-
 
 def train_step(images, old_gen_loss, old_disc_loss):
     # generating noise from a normal distribution
-    noise = tf.random.normal([len(images[0]), noise_dim])
+    number_of_samples_on_batch = len(images[0])
+    noise_batch = tf.random.normal([number_of_samples_on_batch, noise_array_size])
 
     with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
-        generated_images = generator(noise, training=True)
-        real_output = discriminator(images[0], training=True)
+        generated_images = generator(noise_batch, training=True)
+        real_input = images[0]
+        real_output = discriminator(real_input, training=True)
         generated_output = discriminator(generated_images, training=True)
 
         gen_loss = generator_loss(generated_output)
@@ -107,20 +116,20 @@ def train(dataset, epochs):
         for images in dataset:
             gen_loss, disc_loss = train_step(images, gen_loss, disc_loss)
 
-        # saving (checkpoint) the model every 15 epochs
-        # if (epoch + 1) % 15 == 0:
-        #    checkpoint.save(file_prefix = checkpoint_prefix)
+        if (epoch + 1) % 15 == 0:
+            generator.save_weights('./weights/slanted')
 
-        print('Time taken for epoch {} is {} sec'.format(epoch + 1,
-                                                         time.time() - start))
-    # generating after the final epoch
-    # display.clear_output(wait=True)
-    # generate_and_save_images(generator,
-    #                       epochs,
-    #                       random_vector_for_generation)
+        print('Time taken for epoch {} is {} sec'.format(epoch + 1, time.time() - start))
 
 
 train(train_dataset, EPOCHS)
-generated = generator(np.random.rand(1, 100)).numpy().reshape(28, 28)
-plt.imshow(generated)
+generated = generator(np.random.rand(1, noise_array_size)).numpy().reshape(data_width, data_height)
+generator.save_weights('./weights/slanted')
+
+result = discriminator.predict(test_faces_x)
+
+for i, r in enumerate(result):
+    print(f"Was {r} and should be {test_faces_y[i]}")
+
+plt.imshow(generated, cmap='gray', vmin=0, vmax=1)
 plt.show()
