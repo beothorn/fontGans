@@ -72,15 +72,15 @@ def generator_loss(fake_output):
     return cross_entropy(tf.ones_like(fake_output), fake_output)
 
 
-discriminator_optimizer = tf.optimizers.Adam(0.1)
-generator_optimizer = tf.optimizers.Adam(0.1)
+discriminator_optimizer = tf.optimizers.Adam(0.001)
+generator_optimizer = tf.optimizers.Adam(0.001)
 
 
 #@tf.function
 def train_step(images):
     # generating noise from a normal distribution
     #number_of_samples_on_batch = len(images[0])
-    noise_batch = tf.random.normal([BATCH_SIZE, noise_array_size])
+    noise_batch = tf.random.normal([len(images[0]), noise_array_size])
 
     with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
         generated_images = generator(noise_batch, training=True)
@@ -117,14 +117,36 @@ def train(dataset, epochs):
         d_loss = sum(disc_loss_list) / len(disc_loss_list)
 
         epoch_elapsed = time.time()-epoch_start
-        print(f'Epoch {epoch+1}, gen loss={g_loss},disc loss={d_loss}, {epoch_elapsed}')
+        print(f'Epoch {epoch+1}, gen loss={g_loss},disc loss={d_loss}, elapsed: {epoch_elapsed}')
 
     elapsed = time.time()-start
     print(f'Training time: {elapsed}')
 
 
-should_train = False
-should_continue = True
+should_train = True
+should_continue = False
+
+
+def print_test_fixed():
+    print("====================")
+    print(generator(np.array([[0.5, 0.5]])))
+    print(discriminator(np.array([[[0.5, 0.5], [0.5, 0.5]]])))
+    print(discriminator(generator(np.array([[0.5, 0.5]]))))
+    print("====================")
+
+
+def print_test():
+    print("====================")
+    x = np.random.rand(1, noise_array_size)
+    print(f"Random seed {x}")
+    print()
+    print(f"Generated {np.asarray(generator(x))}")
+    print(f"Dis {np.asarray(discriminator(generator(x)))}")
+    print("====================")
+
+
+print_test_fixed()
+print_test()
 
 if should_train:
     if should_continue:
@@ -132,13 +154,13 @@ if should_train:
     train(train_dataset, EPOCHS)
     generator.save_weights('./weights/slanted')
 else:
+    print(np.array([[0.5, 0.5]]))
+    print(generator(np.random.rand(1, noise_array_size)))
+    print(generator(np.array([[0.5, 0.5]])))
     generator.load_weights('./weights/slanted')
 
-print(generator(np.random.rand(1, noise_array_size)).numpy().reshape(data_width, data_height))
-print(generator(np.random.rand(1, noise_array_size)).numpy().reshape(data_width, data_height))
-print(generator(np.random.rand(1, noise_array_size)).numpy().reshape(data_width, data_height))
-print(generator(np.random.rand(1, noise_array_size)).numpy().reshape(data_width, data_height))
-print(generator(np.random.rand(1, noise_array_size)).numpy().reshape(data_width, data_height))
+for _ in range(10):
+    print_test()
 
 # plt.imshow(generated, cmap='gray', vmin=0, vmax=1)
 # plt.show()
