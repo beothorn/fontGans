@@ -15,11 +15,23 @@ import time
 
 # train_dataset = tf.data.Dataset.from_tensor_slices((train_images, train_labels)).shuffle(BUFFER_SIZE).batch(BATCH_SIZE)
 
-BATCH_SIZE = 3
+BATCH_SIZE = 30
 
 
 def good_face_gen():
-    return [[random.uniform(0.8, 1), random.uniform(0, 0.2)], [random.uniform(0, 0.2), random.uniform(0.8, 1)]]
+    big_1 = random.uniform(0.8, 1)
+    big_2 = random.uniform(0.8, 1)
+    sma_1 = random.uniform(0, 0.2)
+    sma_2 = random.uniform(0, 0.2)
+    return [
+        [big_1, sma_1],
+        [sma_2, big_2]
+    ]
+
+
+def is_good(face_np):
+    face = face_np.tolist()
+    return face[0][0][0][0] > 0.7 and face[0][0][1][0][0] < 0.3 and face[0][1][0][0][0] < 0.3 and face[0][1][1][0][0] > 0.7
 
 
 faces_x = np.array([good_face_gen()])
@@ -39,7 +51,7 @@ data_width = 2
 data_height = 2
 
 # ==========================================================
-EPOCHS = 30
+EPOCHS = 3
 noise_array_size = 2
 
 generator = tf.keras.models.Sequential([
@@ -124,7 +136,7 @@ def train(dataset, epochs):
 
 
 should_train = True
-should_continue = False
+should_continue = True
 
 
 def print_test_fixed():
@@ -142,11 +154,12 @@ def print_test():
     print()
     print(f"Generated {np.asarray(generator(x))}")
     print(f"Dis {np.asarray(discriminator(generator(x)))}")
+    print(f"Is good {is_good(np.asarray(generator(x)))}")
     print("====================")
 
 
-print_test_fixed()
-print_test()
+#print_test_fixed()
+#print_test()
 
 if should_train:
     if should_continue:
