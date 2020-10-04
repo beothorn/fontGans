@@ -24,34 +24,28 @@ image_folder = "slanted"
 os.makedirs(image_folder, exist_ok=True)
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--n_epochs", type=int, default=150, help="number of epochs of training")
+parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches") # Não descobri pq diminuir o tamanho do batch dá erro
-parser.add_argument("--lr", type=float, default=0.0000075, help="adam: learning rate")
+parser.add_argument("--lr", type=float, default=0.00075, help="adam: learning rate")
 parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
 parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
 parser.add_argument("--n_cpu", type=int, default=4, help="number of cpu threads to use during batch generation")
 parser.add_argument("--latent_dim", type=int, default=120, help="dimensionality of the latent space")
-parser.add_argument("--img_size", type=int, default=5, help="size of each image dimension") ## Alterado para o tamanho do slanted faces
+parser.add_argument("--img_size", type=int, default=8, help="size of each image dimension") ## Alterado para o tamanho do slanted faces
 parser.add_argument("--channels", type=int, default=1, help="number of image channels")
 parser.add_argument("--sample_interval", type=int, default=500, help="interval betwen image samples")
 opt = parser.parse_args()
 print(opt)
 
 img_shape = (opt.channels, opt.img_size, opt.img_size)
+neuron_complexity = (math.sqrt(opt.img_size)) // 1  #Complexidade da rede aumentar com o tamanho da figura
 
 ## Usar VGA se disponível
 cuda = True if torch.cuda.is_available() else False
 
 ### Gerador de dados bons e ruins
-def good_face_gen():
-    return [[random.uniform(0.8, 1), random.uniform(0, 0.2), random.uniform(0, 0.2)], [random.uniform(0, 0.2), random.uniform(0.8, 1),random.uniform(0, 0.2)],[random.uniform(0, 0.2), random.uniform(0.0, 0.2),random.uniform(0.8, 1)]]
-
 def good_face_gen(face_size):
     return np.apply_along_axis(lambda a: a*random.uniform(0.8, 1.2)/random.uniform(0.8, 1.2),0,np.identity(face_size) ) 
-
-def bad_face_gen():
-    return np.array(
-        [[random.uniform(0, 0.7), random.uniform(0.3, 1), random.uniform(0, 1)], [random.uniform(0.3, 1), random.uniform(0.2, 0.8), random.uniform(0.02, 0.92)],[random.uniform(0.3, 1),random.uniform(0, 1), random.uniform(0, 1)]])
 
 def bad_face_gen(face_size):
     return np.random.rand(face_size,face_size)
@@ -60,8 +54,8 @@ def bad_face_gen(face_size):
 faces_x = np.array([good_face_gen(face_size=opt.img_size)])
 faces_y = np.array([1])
 
-for i in range(4000):
-    if random.uniform(0, 1) > 0.5:
+for i in range(2000):
+    if random.uniform(0, 1) > 0.05: #Troca da proporção melhorou bastante, agora vão muito mais imagens de faces boas para o discriminador
         faces_x = np.append(faces_x, [good_face_gen(face_size=opt.img_size)], axis=0)
         faces_y = np.append(faces_y, [1], axis=0)
     else:
@@ -87,11 +81,11 @@ class Generator(nn.Module):
             return layers
 
         self.model = nn.Sequential(
-            *block(opt.latent_dim, 32, normalize=False),
-            *block(32, 64),
-            *block(64, 128),
-            *block(128, 256),
-            nn.Linear(256, int(np.prod(img_shape))),
+            *block(opt.latent_dim, int(10*neuron_complexity), normalize=False),
+            *block(int(10*neuron_complexity), int(6*neuron_complexity)),
+            *block(int(6*neuron_complexity), int(7*neuron_complexity)),
+            *block(int(7*neuron_complexity), int(3*neuron_complexity)),
+            nn.Linear(int(3*neuron_complexity), int(np.prod(img_shape))),
             nn.Tanh()
         )
 
@@ -106,11 +100,11 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
 
         self.model = nn.Sequential(
-            nn.Linear(int(np.prod(img_shape)), 128),
+            nn.Linear(int(np.prod(img_shape)), int(10*neuron_complexity)),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(128, 32),
+            nn.Linear(int(10*neuron_complexity), int(5*neuron_complexity)),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(32, 1),
+            nn.Linear(int(5*neuron_complexity), 1),
             nn.Sigmoid(),
         )
 
@@ -134,21 +128,6 @@ if cuda:
     adversarial_loss.cuda()
 
 # Configure data loader
-
-### Original
-# os.makedirs("../../data/mnist", exist_ok=True)
-# dataloader = torch.utils.data.DataLoader(
-#     datasets.MNIST(
-#         "../../data/mnist",
-#         train=True,
-#         download=True,
-#         transform=transforms.Compose(
-#             [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Normalize([0.5], [0.5])]
-#         ),
-#     ),
-#     batch_size=opt.batch_size,
-#     shuffle=True,
-# )
 
 ### Slanted - Dataloader de numpy
 tensor_x = torch.Tensor(faces_x) # transform to torch tensor
