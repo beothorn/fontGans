@@ -5,17 +5,14 @@ import numpy as np
 from numpy import random
 import time
 
-# (train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.mnist.load_data()
+# Hyperparams
 
-# train_images = train_images.reshape(train_images.shape[0], 28, 28, 1).astype('float32')
-# train_images = (train_images - 127.5) / 127.5  # Normalize the images to [-1, 1]
-
-# BUFFER_SIZE = 60000
-# BATCH_SIZE = 256
-
-# train_dataset = tf.data.Dataset.from_tensor_slices((train_images, train_labels)).shuffle(BUFFER_SIZE).batch(BATCH_SIZE)
-
+EPOCHS = 50
+noise_array_size = 2
 BATCH_SIZE = 30
+FACE_COUNT = 1000
+GEN_LEARNING_RATE = 0.001
+DISCRIMINATOR_LEARNING_RATE = 0.01
 
 
 def good_face_gen():
@@ -31,13 +28,13 @@ def good_face_gen():
 
 def is_good(face_np):
     face = face_np.tolist()
-    return face[0][0][0][0] > 0.7 and face[0][0][1][0][0] < 0.3 and face[0][1][0][0][0] < 0.3 and face[0][1][1][0][0] > 0.7
+    return face[0][0] > 0.7 and face[0][1] < 0.3 and face[1][0] < 0.3 and face[1][1] > 0.7
 
 
 faces_x = np.array([good_face_gen()])
 faces_y = np.array([1])
 
-for i in range(BATCH_SIZE*100):
+for i in range(BATCH_SIZE * FACE_COUNT):
     faces_x = np.append(faces_x, [good_face_gen()], axis=0)
     faces_y = np.append(faces_y, [1], axis=0)
 
@@ -50,9 +47,6 @@ test_dataset = tf.data.Dataset.from_tensor_slices((test_faces_x, test_faces_y)).
 data_width = 2
 data_height = 2
 
-# ==========================================================
-EPOCHS = 3
-noise_array_size = 2
 
 generator = tf.keras.models.Sequential([
     Dense(4, activation='relu'),
@@ -61,14 +55,12 @@ generator = tf.keras.models.Sequential([
     Reshape((data_width, data_height, 1))
 ])
 
-
 discriminator = tf.keras.models.Sequential([
     Dense(4, activation='relu', input_shape=(2, 2)),
     Dense(4, activation='relu'),
     Flatten(),
     Dense(1, activation='sigmoid')
 ])
-
 
 cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
@@ -84,14 +76,14 @@ def generator_loss(fake_output):
     return cross_entropy(tf.ones_like(fake_output), fake_output)
 
 
-discriminator_optimizer = tf.optimizers.Adam(0.001)
-generator_optimizer = tf.optimizers.Adam(0.001)
+discriminator_optimizer = tf.optimizers.Adam(DISCRIMINATOR_LEARNING_RATE)
+generator_optimizer = tf.optimizers.Adam(GEN_LEARNING_RATE)
 
 
-#@tf.function
+# @tf.function
 def train_step(images):
     # generating noise from a normal distribution
-    #number_of_samples_on_batch = len(images[0])
+    # number_of_samples_on_batch = len(images[0])
     noise_batch = tf.random.normal([len(images[0]), noise_array_size])
 
     with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
@@ -128,15 +120,15 @@ def train(dataset, epochs):
         g_loss = sum(gen_loss_list) / len(gen_loss_list)
         d_loss = sum(disc_loss_list) / len(disc_loss_list)
 
-        epoch_elapsed = time.time()-epoch_start
-        print(f'Epoch {epoch+1}, gen loss={g_loss},disc loss={d_loss}, elapsed: {epoch_elapsed}')
+        epoch_elapsed = time.time() - epoch_start
+        if epoch % 10 == 0:
+            print("SAVING")
+            generator.save_weights('./weights/slantedGen')
+            discriminator.save_weights('./weights/slantedDisc')
+        print(f'Epoch {epoch + 1}, gen loss={g_loss},disc loss={d_loss}, elapsed: {epoch_elapsed}')
 
-    elapsed = time.time()-start
+    elapsed = time.time() - start
     print(f'Training time: {elapsed}')
-
-
-should_train = True
-should_continue = True
 
 
 def print_test_fixed():
@@ -152,25 +144,25 @@ def print_test():
     x = np.random.rand(1, noise_array_size)
     print(f"Random seed {x}")
     print()
-    print(f"Generated {np.asarray(generator(x))}")
-    print(f"Dis {np.asarray(discriminator(generator(x)))}")
-    print(f"Is good {is_good(np.asarray(generator(x)))}")
+    print(f"Generated {np.asarray(generator(x)).tolist()}")
+    print(f"Dis {np.asarray(discriminator(generator(x))).tolist()}")
+    #print(f"Is good {is_good(np.asarray(generator(x)))}")
     print("====================")
 
 
-#print_test_fixed()
-#print_test()
+# print_test_fixed()
+# print_test()
 
-if should_train:
-    if should_continue:
-        generator.load_weights('./weights/slanted')
-    train(train_dataset, EPOCHS)
-    generator.save_weights('./weights/slanted')
-else:
-    print(np.array([[0.5, 0.5]]))
-    print(generator(np.random.rand(1, noise_array_size)))
-    print(generator(np.array([[0.5, 0.5]])))
-    generator.load_weights('./weights/slanted')
+try:
+    generator.load_weights('./weights/slantedGen')
+    discriminator.load_weights('./weights/slantedDisc')
+except:
+    pass
+
+train(train_dataset, EPOCHS)
+
+generator.save_weights('./weights/slantedGen')
+discriminator.save_weights('./weights/slantedDisc')
 
 for _ in range(10):
     print_test()
