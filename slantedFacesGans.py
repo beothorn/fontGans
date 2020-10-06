@@ -7,12 +7,13 @@ import time
 
 # Hyperparams
 
-EPOCHS = 50
+EPOCHS = 100
+UPDATE_RATE_FOR_EPOCH = 5
 noise_array_size = 2
 BATCH_SIZE = 30
 FACE_COUNT = 1000
-GEN_LEARNING_RATE = 0.001
-DISCRIMINATOR_LEARNING_RATE = 0.01
+GEN_LEARNING_RATE = 1
+DISCRIMINATOR_LEARNING_RATE = 1
 
 
 def good_face_gen():
@@ -49,15 +50,16 @@ data_height = 2
 
 
 generator = tf.keras.models.Sequential([
-    Dense(4, activation='relu'),
-    Dense(4, activation='relu'),
+    #Dense(4, activation='relu', bias_initializer=tf.random_normal_initializer(mean=.5, stddev=.5)),
     Dense(data_width * data_height, activation='relu'),
+    Dense(data_width * data_height, activation='relu'),
+    Dense(data_width * data_height, activation='sigmoid'),
     Reshape((data_width, data_height, 1))
 ])
 
 discriminator = tf.keras.models.Sequential([
-    Dense(4, activation='relu', input_shape=(2, 2)),
-    Dense(4, activation='relu'),
+    Dense(data_width * data_height, activation='relu', input_shape=(2, 2)),
+    Dense(data_width * data_height, activation='relu'),
     Flatten(),
     Dense(1, activation='sigmoid')
 ])
@@ -103,6 +105,9 @@ def train_step(images):
     return gen_loss, disc_loss
 
 
+fixed_random = np.random.rand(1, noise_array_size)
+
+
 def train(dataset, epochs):
     start = time.time()
 
@@ -121,11 +126,15 @@ def train(dataset, epochs):
         d_loss = sum(disc_loss_list) / len(disc_loss_list)
 
         epoch_elapsed = time.time() - epoch_start
-        if epoch % 10 == 0:
-            print("SAVING")
+        if epoch % UPDATE_RATE_FOR_EPOCH == 0:
+            print("SAVING..")
             generator.save_weights('./weights/slantedGen')
             discriminator.save_weights('./weights/slantedDisc')
-        print(f'Epoch {epoch + 1}, gen loss={g_loss},disc loss={d_loss}, elapsed: {epoch_elapsed}')
+            print("TESTING:")
+            print("====================")
+            print(f"Sample \n {np.asarray(generator(fixed_random)).tolist()}")
+            print("====================")
+            print(f'Epoch {epoch + 1}, gen loss={g_loss},disc loss={d_loss}, elapsed: {epoch_elapsed}')
 
     elapsed = time.time() - start
     print(f'Training time: {elapsed}')
