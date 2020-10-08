@@ -7,13 +7,13 @@ import time
 
 # Hyperparams
 
-EPOCHS = 100
-UPDATE_RATE_FOR_EPOCH = 5
+EPOCHS = 1
+UPDATE_RATE_FOR_EPOCH = 10
 noise_array_size = 2
 BATCH_SIZE = 30
-FACE_COUNT = 1000
-GEN_LEARNING_RATE = 1
-DISCRIMINATOR_LEARNING_RATE = 1
+FACE_COUNT = 100
+GEN_LEARNING_RATE = 0.01
+DISCRIMINATOR_LEARNING_RATE = 0.01
 
 
 def good_face_gen():
@@ -50,32 +50,30 @@ data_height = 2
 
 
 generator = tf.keras.models.Sequential([
-    #Dense(4, activation='relu', bias_initializer=tf.random_normal_initializer(mean=.5, stddev=.5)),
     Dense(data_width * data_height, activation='relu'),
     Dense(data_width * data_height, activation='relu'),
     Dense(data_width * data_height, activation='sigmoid'),
     Reshape((data_width, data_height, 1))
 ])
 
+
 discriminator = tf.keras.models.Sequential([
-    Dense(data_width * data_height, activation='relu', input_shape=(2, 2)),
+    Flatten(input_shape=(2, 2)),
     Dense(data_width * data_height, activation='relu'),
-    Flatten(),
+    Dense(data_width * data_height, activation='relu'),
     Dense(1, activation='sigmoid')
 ])
 
-cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
-
 
 def discriminator_loss(real_output, fake_output):
-    real_loss = cross_entropy(tf.ones_like(real_output), real_output)
-    fake_loss = cross_entropy(tf.zeros_like(fake_output), fake_output)
+    real_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=real_output, labels=tf.ones_like(real_output)))
+    fake_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_output, labels=tf.zeros_like(fake_output)))
     total_loss = real_loss + fake_loss
     return total_loss
 
 
 def generator_loss(fake_output):
-    return cross_entropy(tf.ones_like(fake_output), fake_output)
+    return tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_output, labels=tf.ones_like(fake_output)))
 
 
 discriminator_optimizer = tf.optimizers.Adam(DISCRIMINATOR_LEARNING_RATE)
@@ -135,17 +133,10 @@ def train(dataset, epochs):
             print(f"Sample \n {np.asarray(generator(fixed_random)).tolist()}")
             print("====================")
             print(f'Epoch {epoch + 1}, gen loss={g_loss},disc loss={d_loss}, elapsed: {epoch_elapsed}')
+            print("##############################################################################################")
 
     elapsed = time.time() - start
     print(f'Training time: {elapsed}')
-
-
-def print_test_fixed():
-    print("====================")
-    print(generator(np.array([[0.5, 0.5]])))
-    print(discriminator(np.array([[[0.5, 0.5], [0.5, 0.5]]])))
-    print(discriminator(generator(np.array([[0.5, 0.5]]))))
-    print("====================")
 
 
 def print_test():
@@ -153,11 +144,12 @@ def print_test():
     x = np.random.rand(1, noise_array_size)
     print(f"Random seed {x}")
     print()
-    print(f"Generated {np.asarray(generator(x)).tolist()}")
-    print(f"Dis {np.asarray(discriminator(generator(x))).tolist()}")
-    #print(f"Is good {is_good(np.asarray(generator(x)))}")
+    generated = np.asarray(generator(x)).tolist()
+    for item in generated:
+        for row in item:
+            for col in row:
+                print(f" {round(col[0])} ")
     print("====================")
-
 
 # print_test_fixed()
 # print_test()
@@ -168,13 +160,14 @@ try:
 except:
     pass
 
+
 train(train_dataset, EPOCHS)
+
+generator.summary()
+discriminator.summary()
 
 generator.save_weights('./weights/slantedGen')
 discriminator.save_weights('./weights/slantedDisc')
 
 for _ in range(10):
     print_test()
-
-# plt.imshow(generated, cmap='gray', vmin=0, vmax=1)
-# plt.show()
