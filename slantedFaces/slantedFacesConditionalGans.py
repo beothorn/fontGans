@@ -7,7 +7,7 @@ import time
 
 # Hyperparams
 
-EPOCHS = 1
+EPOCHS = 4
 UPDATE_RATE_FOR_EPOCH = 10
 noise_array_size = 2
 BATCH_SIZE = 30
@@ -16,7 +16,7 @@ GEN_LEARNING_RATE = 0.01
 DISCRIMINATOR_LEARNING_RATE = 0.01
 
 
-def good_face_gen():
+def good_face_left_gen():
     big_1 = random.uniform(0.8, 1)
     big_2 = random.uniform(0.8, 1)
     sma_1 = random.uniform(0, 0.2)
@@ -27,18 +27,30 @@ def good_face_gen():
     ]
 
 
-faces_x = np.array([good_face_gen()])
-faces_y = np.array([1])
+def good_face_right_gen():
+    big_1 = random.uniform(0.8, 1)
+    big_2 = random.uniform(0.8, 1)
+    sma_1 = random.uniform(0, 0.2)
+    sma_2 = random.uniform(0, 0.2)
+    return [
+        [sma_1, big_1],
+        [big_2, sma_2]
+    ]
+
+
+faces_left_x = np.array([good_face_left_gen()])
+faces_left_y = np.array([1])
+
+faces_right_x = np.array([good_face_right_gen()])
+faces_right_y = np.array([1])
 
 for i in range(BATCH_SIZE * FACE_COUNT):
-    faces_x = np.append(faces_x, [good_face_gen()], axis=0)
-    faces_y = np.append(faces_y, [1], axis=0)
+    faces_left_x = np.append(faces_left_x, [good_face_left_gen()], axis=0)
+    faces_left_y = np.append(faces_left_y, [1], axis=0)
 
-test_faces_x = np.array([good_face_gen()])
-test_faces_y = np.array([1])
 
-train_dataset = tf.data.Dataset.from_tensor_slices((faces_x, faces_y)).batch(BATCH_SIZE)
-test_dataset = tf.data.Dataset.from_tensor_slices((test_faces_x, test_faces_y)).batch(BATCH_SIZE)
+train_dataset_left = tf.data.Dataset.from_tensor_slices((faces_left_x, faces_left_y)).shuffle(FACE_COUNT).batch(BATCH_SIZE)
+train_dataset_right = tf.data.Dataset.from_tensor_slices((faces_right_x, faces_right_y)).shuffle(FACE_COUNT).batch(BATCH_SIZE)
 
 data_width = 2
 data_height = 2
@@ -76,10 +88,15 @@ generator_optimizer = tf.optimizers.Adam(GEN_LEARNING_RATE)
 
 
 # @tf.function
-def train_step(images):
+def train_step(images, noise_left):
     # generating noise from a normal distribution
     # number_of_samples_on_batch = len(images[0])
     noise_batch = tf.random.normal([len(images[0]), noise_array_size])
+    for n in noise_batch:
+        if noise_left:
+            n[0] = 1
+        else:
+            n[0] = 0
 
     with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
         generated_images = generator(noise_batch, training=True)
@@ -101,7 +118,7 @@ def train_step(images):
 fixed_random = np.random.rand(1, noise_array_size)
 
 
-def train(dataset, epochs):
+def train(dataset_left, dataset_right, epochs):
     start = time.time()
 
     for epoch in range(epochs):
@@ -110,8 +127,13 @@ def train(dataset, epochs):
         gen_loss_list = []
         disc_loss_list = []
 
-        for image_batch in dataset:
-            t = train_step(image_batch)
+        for image_batch in dataset_left:
+            t = train_step(image_batch, True)
+            gen_loss_list.append(t[0])
+            disc_loss_list.append(t[1])
+
+        for image_batch in dataset_right:
+            t = train_step(image_batch, False)
             gen_loss_list.append(t[0])
             disc_loss_list.append(t[1])
 
@@ -137,7 +159,18 @@ def train(dataset, epochs):
 def print_test():
     print("====================")
     x = np.random.rand(1, noise_array_size)
-    print(f"Random seed {x}")
+    x[0] = 1
+    print(f"Random seed LEFT {x}")
+    print()
+    generated = np.asarray(generator(x)).tolist()
+    for item in generated:
+        for row in item:
+            for col in row:
+                print(f" {round(col[0])} ")
+
+    x = np.random.rand(1, noise_array_size)
+    x[0] = 0
+    print(f"Random seed RIGHT {x}")
     print()
     generated = np.asarray(generator(x)).tolist()
     for item in generated:
@@ -156,7 +189,7 @@ except:
     pass
 
 
-train(train_dataset, EPOCHS)
+train(train_dataset_left, train_dataset_right, EPOCHS)
 
 generator.summary()
 discriminator.summary()
