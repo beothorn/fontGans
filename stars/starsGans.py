@@ -14,8 +14,8 @@ def draw_polygon(star):
 
     print(star)
 
-    for i in range(0, len(star) - 2, 2):
-        plt.plot([star[i], star[i + 2]], [star[i + 1], star[i + 3]])
+    for index in range(0, len(star) - 2, 2):
+        plt.plot([star[index], star[index + 2]], [star[index + 1], star[index + 3]])
     plt.plot([star[len(star) - 2], star[0]], [star[len(star) - 1], star[1]])
 
     plt.xlim(0, 1), plt.ylim(0, 1)
@@ -62,30 +62,53 @@ def gen_star():
 EPOCHS = 300
 UPDATE_RATE_FOR_EPOCH = 10
 noise_array_size = 2
-BATCH_SIZE = 30
-FACE_COUNT = 60000
-GEN_LEARNING_RATE = 0.01
-DISCRIMINATOR_LEARNING_RATE = 0.01
+BATCH_SIZE = 800
+NUMBER_OF_BATCHES = 80
+GEN_LEARNING_RATE = 0.001
+DISCRIMINATOR_LEARNING_RATE = 0.001
 
 values_x = np.array([gen_star()])
 values_y = np.array([1])
 
-for i in range(BATCH_SIZE * FACE_COUNT):
+print("Generating values")
+number_of_values = BATCH_SIZE * NUMBER_OF_BATCHES
+print(f"Will generate {number_of_values}")
+
+for i in range(BATCH_SIZE * NUMBER_OF_BATCHES):
     values_x = np.append(values_x, [gen_star()], axis=0)
     values_y = np.append(values_y, [1], axis=0)
+
+print("Done generating values")
 
 test_values_x = np.array([gen_star()])
 test_values_y = np.array([1])
 
+
+print("Creating datasets")
 train_dataset = tf.data.Dataset.from_tensor_slices((values_x, values_y)).batch(BATCH_SIZE)
 test_dataset = tf.data.Dataset.from_tensor_slices((test_values_x, test_values_y)).batch(BATCH_SIZE)
 
 generator = tf.keras.models.Sequential([
     Dense(10, activation='relu'),
-    Dense(10, activation='relu'),
-    Dense(10, activation='relu'),
-    Dense(10, activation='relu'),
-    Dense(10, activation='relu'),
+    Dense(20, activation='relu'),
+    Dense(20, activation='relu'),
+    Dense(20, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(100, activation='relu'),
     Dense(10, activation='sigmoid')
 ])
 
@@ -93,9 +116,25 @@ generator = tf.keras.models.Sequential([
 discriminator = tf.keras.models.Sequential([
     Dense(10, activation='relu', input_shape=(10, )),
     Dense(10, activation='relu'),
-    Dense(10, activation='relu'),
-    Dense(10, activation='relu'),
-    Dense(10, activation='relu'),
+    Dense(20, activation='relu'),
+    Dense(20, activation='relu'),
+    Dense(20, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(100, activation='relu'),
     Dense(1, activation='sigmoid')
 ])
 
@@ -143,6 +182,7 @@ fixed_random = np.random.rand(1, noise_array_size)
 
 def train(dataset, epochs):
     start = time.time()
+    average_time = 0
 
     for epoch in range(epochs):
         epoch_start = time.time()
@@ -157,8 +197,12 @@ def train(dataset, epochs):
 
         g_loss = sum(gen_loss_list) / len(gen_loss_list)
         d_loss = sum(disc_loss_list) / len(disc_loss_list)
+        d_loss = sum(d_loss) / len(d_loss)
 
         epoch_elapsed = time.time() - epoch_start
+        if average_time == 0:
+            average_time = epoch_elapsed
+        average_time = (epoch_elapsed + average_time) / 2
         if epoch % UPDATE_RATE_FOR_EPOCH == 0:
             print("SAVING..")
             generator.save_weights('./weights/slantedGen')
@@ -166,8 +210,13 @@ def train(dataset, epochs):
             print("TESTING:")
             print("====================")
             print(f"Sample \n {np.asarray(generator(fixed_random)).tolist()}")
+            # draw_polygon(generator(fixed_random)[0])
             print("====================")
             print(f'Epoch {epoch + 1}, gen loss={g_loss},disc loss={d_loss}, elapsed: {epoch_elapsed}')
+            expected_seconds = math.ceil(average_time * (EPOCHS - (epoch + 1)))
+            print(f"Expected time = {math.floor(expected_seconds/3600)} "
+                  f"Hours {math.floor((expected_seconds/60)%60)} "
+                  f"Minutes {expected_seconds % 60} seconds")
             print("##############################################################################################")
 
     elapsed = time.time() - start
@@ -191,7 +240,7 @@ try:
 except:
     pass
 
-
+print("Will start training")
 train(train_dataset, EPOCHS)
 
 generator.summary()
