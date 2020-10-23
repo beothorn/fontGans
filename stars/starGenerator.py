@@ -1,36 +1,28 @@
-# tamanho minimo
-# Ponto aleatrio nessa area de 50x50
-# mas a partir da borda esquerda + minimo ate a borda direita - minimo
-# topo + minimo e fundo - minimo
-# Mede a distancia pra borda mais proxima
-# tamanho aleatorio entre o minimo e a distancia medida
-# angulo aleatorio entre 0 360
-# acha o ponto do circulo nesse angulo
-# repete 4 vezes: soma 144 + variaçao pequena entre -3 e +3 (vai dar 5 segmentos formando uma estrela)
-# da pra usar PILLOW pra desenhar os testes
-
 import matplotlib.pyplot as plt
 import random
 import math
 
 
 def draw_polygon(star):
+
+    print(star)
+
     for i in range(0, len(star) - 2, 2):
         plt.plot([star[i], star[i + 2]], [star[i + 1], star[i + 3]])
     plt.plot([star[len(star) - 2], star[0]], [star[len(star) - 1], star[1]])
 
-    plt.xlim(0, 50), plt.ylim(0, 50)
+    plt.xlim(0, 1), plt.ylim(0, 1)
     plt.show()
 
 
 def gen_star():
     # [10, 10, 20, 30, 30, 10, 10, 20, 40, 20]
-    border = 10
-    width = 50
-    height = 50
+    border = 0.01
+    width = 1
+    height = 1
 
-    rx = random.randint(0 + border, width - border)
-    ry = random.randint(0 + border, height - border)
+    rx = border + ((width - (border * 2)) * random.random())
+    ry = border + ((width - (border * 2)) * random.random())
 
     top_distance = height - ry
     bottom_distance = ry
@@ -38,7 +30,7 @@ def gen_star():
     right_distance = width - rx
 
     max_radius = min(top_distance, bottom_distance, left_distance, right_distance)
-    radius = random.randint(border, max_radius)
+    radius = max(border, max_radius * random.random())
 
     r_ang = random.random() * math.pi * 2
     increase = (math.tau * 3) / 5
@@ -48,12 +40,13 @@ def gen_star():
 
     result = [starting_point_x, starting_point_y]
 
-    for i in range(5):
+    for i in range(4):
         r_ang = r_ang + increase
         result.append(rx + (math.cos(r_ang) * radius))
         result.append(ry + (math.sin(r_ang) * radius))
 
     return result
 
+print(len(gen_star()))
 
 draw_polygon(gen_star())
