@@ -1,6 +1,6 @@
 import tensorflow as tf
 import datetime
-from tensorflow.keras.layers import Flatten, Dense, Dropout, Reshape
+from tensorflow.keras.layers import Flatten, Dense, Dropout, Reshape, LeakyReLU
 import numpy as np
 from numpy import random
 import time
@@ -11,13 +11,13 @@ import math
 
 # Hyperparams
 
-EPOCHS = 40
+EPOCHS = 80
 UPDATE_RATE_FOR_EPOCH = 10
 noise_array_size = 6
 BATCH_SIZE = 800
 NUMBER_OF_BATCHES = 80
 GEN_LEARNING_RATE = 0.01
-DISCRIMINATOR_LEARNING_RATE = 0.001
+DISCRIMINATOR_LEARNING_RATE = 0.01
 NAME = "Star"
 
 
@@ -88,8 +88,9 @@ test_values_x = np.array([gen_star()])
 test_values_y = np.array([1])
 
 print("Creating datasets")
-train_dataset = tf.data.Dataset.from_tensor_slices((values_x, values_y)).batch(BATCH_SIZE)
-test_dataset = tf.data.Dataset.from_tensor_slices((test_values_x, test_values_y)).batch(BATCH_SIZE)
+if EPOCHS > 0:
+    train_dataset = tf.data.Dataset.from_tensor_slices((values_x, values_y)).batch(BATCH_SIZE)
+    test_dataset = tf.data.Dataset.from_tensor_slices((test_values_x, test_values_y)).batch(BATCH_SIZE)
 
 generator = tf.keras.models.Sequential([
     Dense(10, activation='relu'),
@@ -98,45 +99,29 @@ generator = tf.keras.models.Sequential([
     Dense(20, activation='relu'),
     Dense(30, activation='relu'),
     Dense(30, activation='relu'),
-    Dense(30, activation='relu'),
-    Dense(30, activation='relu'),
-    Dense(50, activation='relu'),
-    Dense(50, activation='relu'),
-    Dense(50, activation='relu'),
-    Dense(50, activation='relu'),
-    Dense(80, activation='relu'),
-    Dense(80, activation='relu'),
-    Dense(80, activation='relu'),
-    Dense(80, activation='relu'),
-    Dense(100, activation='relu'),
-    Dense(100, activation='relu'),
-    Dense(100, activation='relu'),
-    Dense(10, activation='relu'),
     Dense(10, activation='sigmoid')
 ])
-
 discriminator = tf.keras.models.Sequential([
     Dense(10, activation='relu', input_shape=(10,)),
-    Dense(10, activation='relu'),
+    LeakyReLU(alpha=0.1),
+    Dense(10, activation=None),
     Dense(20, activation='relu'),
     Dense(20, activation='relu'),
     Dense(20, activation='relu'),
     Dense(30, activation='relu'),
     Dense(30, activation='relu'),
+    Dense(1, activation='sigmoid')
+])
+
+discriminator2 = tf.keras.models.Sequential([
+    Dense(10, activation='relu', input_shape=(10,)),
+    LeakyReLU(alpha=0.1),
+    Dense(10, activation=None),
+    Dense(20, activation='relu'),
+    Dense(20, activation='relu'),
+    Dense(20, activation='relu'),
     Dense(30, activation='relu'),
     Dense(30, activation='relu'),
-    Dense(50, activation='relu'),
-    Dense(50, activation='relu'),
-    Dense(50, activation='relu'),
-    Dense(50, activation='relu'),
-    Dense(80, activation='relu'),
-    Dense(80, activation='relu'),
-    Dense(80, activation='relu'),
-    Dense(80, activation='relu'),
-    Dense(100, activation='relu'),
-    Dense(100, activation='relu'),
-    Dense(100, activation='relu'),
-    Dense(100, activation='relu'),
     Dense(1, activation='sigmoid')
 ])
 
@@ -153,6 +138,7 @@ def generator_loss(fake_output):
 
 
 discriminator_optimizer = tf.optimizers.Adam(DISCRIMINATOR_LEARNING_RATE)
+discriminator_optimizer2 = tf.optimizers.Adam(0.1)
 generator_optimizer = tf.optimizers.Adam(GEN_LEARNING_RATE)
 
 
@@ -175,6 +161,20 @@ def train_step(images):
 
         gradients_of_discriminator = disc_tape.gradient(disc_loss, discriminator.variables)
         discriminator_optimizer.apply_gradients(zip(gradients_of_discriminator, discriminator.trainable_variables))
+
+    with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape2:
+        generated_images = generator(noise_batch, training=True)
+        real_output = discriminator2(images, training=True)
+        generated_output2 = discriminator2(generated_images, training=True)
+
+        gen_loss = generator_loss(generated_output2)
+        disc_loss2 = discriminator_loss(real_output, generated_output2)
+
+        gradients_of_generator = gen_tape.gradient(gen_loss, generator.variables)
+        generator_optimizer.apply_gradients(zip(gradients_of_generator, generator.trainable_variables))
+
+        gradients_of_discriminator2 = disc_tape2.gradient(disc_loss2, discriminator2.variables)
+        discriminator_optimizer2.apply_gradients(zip(gradients_of_discriminator2, discriminator2.trainable_variables))
 
     return gen_loss, disc_loss
 
@@ -238,19 +238,23 @@ def print_test():
 # print_test()
 
 try:
-    generator.load_weights(f"./weights/slantedGen")
-    discriminator.load_weights(f"./weights/slantedDisc")
+    generator.load_weights(f"./weights/{NAME}Gen")
+    discriminator.load_weights(f"./weights/{NAME}Disc")
+    discriminator2.load_weights(f"./weights/{NAME}Disc2")
 except:
     pass
 
 print("Will start training")
-train(train_dataset, EPOCHS)
+if EPOCHS > 0:
+    train(train_dataset, EPOCHS)
 
 # generator.summary()
 # discriminator.summary()
 
-generator.save_weights(f"./weights/{NAME}Gen")
-discriminator.save_weights(f"./weights/{NAME}Disc")
+if EPOCHS > 0:
+    generator.save_weights(f"./weights/{NAME}Gen")
+    discriminator.save_weights(f"./weights/{NAME}Disc")
+    discriminator2.save_weights(f"./weights/{NAME}Disc2")
 
 def test_discriminator(star):
     print( discriminator(np.asarray([star])) )
@@ -259,6 +263,8 @@ test_discriminator(gen_star())
 test_discriminator([0.5, 0.6, 0.7, 0.8, 0.5, 0.5, 0.6, 0.7, 0.8, 0.5])
 
 #draw_polygon(np.asarray(generator(np.asarray([[-1., -2., 0.5, 65, 52, 65]]))).tolist()[0])
+draw_polygon(np.asarray(generator(np.asarray([[-100., -200., 102, 2, 4, 5]]))).tolist()[0])
+draw_polygon(np.asarray(generator(np.asarray([[4., 15., -56, 556, 2, 23]]))).tolist()[0])
 draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size))).tolist()[0])
-draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size))).tolist()[0])
-draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size))).tolist()[0])
+# draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size))).tolist()[0])
+# draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size))).tolist()[0])
