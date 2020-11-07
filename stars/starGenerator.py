@@ -1,52 +1,80 @@
 import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow.keras.layers import Flatten, Dense, Dropout, Reshape
+import numpy as np
+from numpy import random
+import time
+
+import matplotlib.pyplot as plt
 import random
 import math
 
 
 def draw_polygon(star):
-
     print(star)
-
-    for i in range(0, len(star) - 2, 2):
-        plt.plot([star[i], star[i + 2]], [star[i + 1], star[i + 3]])
+    for index in range(0, len(star) - 2, 2):
+        plt.plot([star[index], star[index + 2]], [star[index + 1], star[index + 3]])
     plt.plot([star[len(star) - 2], star[0]], [star[len(star) - 1], star[1]])
 
     plt.xlim(0, 1), plt.ylim(0, 1)
     plt.show()
 
+generator = tf.keras.models.Sequential([
+    Dense(10, activation='relu'),
+    Dense(20, activation='relu'),
+    Dense(20, activation='relu'),
+    Dense(20, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(10, activation='sigmoid')
+])
 
-def gen_star():
-    # [10, 10, 20, 30, 30, 10, 10, 20, 40, 20]
-    border = 0.01
-    width = 1
-    height = 1
 
-    rx = border + ((width - (border * 2)) * random.random())
-    ry = border + ((width - (border * 2)) * random.random())
+discriminator = tf.keras.models.Sequential([
+    Dense(10, activation='relu', input_shape=(10, )),
+    Dense(10, activation='relu'),
+    Dense(20, activation='relu'),
+    Dense(20, activation='relu'),
+    Dense(20, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(30, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(50, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(80, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(1, activation='sigmoid')
+])
 
-    top_distance = height - ry
-    bottom_distance = ry
-    left_distance = rx
-    right_distance = width - rx
+generator.load_weights('./weights/star')
+discriminator.load_weights('./weights/star')
 
-    max_radius = min(top_distance, bottom_distance, left_distance, right_distance)
-    radius = max(border, max_radius * random.random())
+draw_polygon(np.asarray(generator(np.asarray([[-1., -2.]]))).tolist()[0])
+draw_polygon(np.asarray(generator(np.asarray([[1.2, 5.]]))).tolist()[0])
+draw_polygon(np.asarray(generator(np.asarray([[2.4, 0.]]))).tolist()[0])
+draw_polygon(np.asarray(generator(np.asarray([[3.8, 0.]]))).tolist()[0])
+draw_polygon(np.asarray(generator(np.asarray([[10., 0.]]))).tolist()[0])
 
-    r_ang = random.random() * math.pi * 2
-    increase = (math.tau * 3) / 5
-
-    starting_point_x = rx + (math.cos(r_ang) * radius)
-    starting_point_y = ry + (math.sin(r_ang) * radius)
-
-    result = [starting_point_x, starting_point_y]
-
-    for i in range(4):
-        r_ang = r_ang + increase
-        result.append(rx + (math.cos(r_ang) * radius))
-        result.append(ry + (math.sin(r_ang) * radius))
-
-    return result
-
-print(len(gen_star()))
-
-draw_polygon(gen_star())

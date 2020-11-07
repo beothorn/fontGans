@@ -1,5 +1,5 @@
-import matplotlib.pyplot as plt
 import tensorflow as tf
+import datetime
 from tensorflow.keras.layers import Flatten, Dense, Dropout, Reshape
 import numpy as np
 from numpy import random
@@ -9,9 +9,22 @@ import matplotlib.pyplot as plt
 import random
 import math
 
+# Hyperparams
+
+EPOCHS = 40
+UPDATE_RATE_FOR_EPOCH = 10
+noise_array_size = 6
+BATCH_SIZE = 800
+NUMBER_OF_BATCHES = 80
+GEN_LEARNING_RATE = 0.01
+DISCRIMINATOR_LEARNING_RATE = 0.001
+NAME = "Star"
+
+
+# ====================
+
 
 def draw_polygon(star):
-
     print(star)
 
     for index in range(0, len(star) - 2, 2):
@@ -55,18 +68,6 @@ def gen_star():
     return result
 
 
-# draw_polygon(gen_star())
-
-# Hyperparams
-
-EPOCHS = 300
-UPDATE_RATE_FOR_EPOCH = 10
-noise_array_size = 2
-BATCH_SIZE = 800
-NUMBER_OF_BATCHES = 80
-GEN_LEARNING_RATE = 0.001
-DISCRIMINATOR_LEARNING_RATE = 0.001
-
 values_x = np.array([gen_star()])
 values_y = np.array([1])
 
@@ -82,7 +83,6 @@ print("Done generating values")
 
 test_values_x = np.array([gen_star()])
 test_values_y = np.array([1])
-
 
 print("Creating datasets")
 train_dataset = tf.data.Dataset.from_tensor_slices((values_x, values_y)).batch(BATCH_SIZE)
@@ -108,13 +108,12 @@ generator = tf.keras.models.Sequential([
     Dense(100, activation='relu'),
     Dense(100, activation='relu'),
     Dense(100, activation='relu'),
-    Dense(100, activation='relu'),
+    Dense(10, activation='relu'),
     Dense(10, activation='sigmoid')
 ])
 
-
 discriminator = tf.keras.models.Sequential([
-    Dense(10, activation='relu', input_shape=(10, )),
+    Dense(10, activation='relu', input_shape=(10,)),
     Dense(10, activation='relu'),
     Dense(20, activation='relu'),
     Dense(20, activation='relu'),
@@ -205,8 +204,8 @@ def train(dataset, epochs):
         average_time = (epoch_elapsed + average_time) / 2
         if epoch % UPDATE_RATE_FOR_EPOCH == 0:
             print("SAVING..")
-            generator.save_weights('./weights/slantedGen')
-            discriminator.save_weights('./weights/slantedDisc')
+            generator.save_weights(f"./weights/{NAME}Gen")
+            discriminator.save_weights(f"./weights/{NAME}Disc")
             print("TESTING:")
             print("====================")
             print(f"Sample \n {np.asarray(generator(fixed_random)).tolist()}")
@@ -214,8 +213,8 @@ def train(dataset, epochs):
             print("====================")
             print(f'Epoch {epoch + 1}, gen loss={g_loss},disc loss={d_loss}, elapsed: {epoch_elapsed}')
             expected_seconds = math.ceil(average_time * (EPOCHS - (epoch + 1)))
-            print(f"Expected time = {math.floor(expected_seconds/3600)} "
-                  f"Hours {math.floor((expected_seconds/60)%60)} "
+            print(f"Expected time = {math.floor(expected_seconds / 3600)} "
+                  f"Hours {math.floor((expected_seconds / 60) % 60)} "
                   f"Minutes {expected_seconds % 60} seconds")
             print("##############################################################################################")
 
@@ -231,22 +230,32 @@ def print_test():
     generated = np.asarray(generator(x)).tolist()
     draw_polygon(generated[0])
 
+
 # print_test_fixed()
 # print_test()
 
 try:
-    generator.load_weights('./weights/slantedGen')
-    discriminator.load_weights('./weights/slantedDisc')
+    generator.load_weights(f"./weights/slantedGen")
+    discriminator.load_weights(f"./weights/slantedDisc")
 except:
     pass
 
 print("Will start training")
 train(train_dataset, EPOCHS)
 
-generator.summary()
-discriminator.summary()
+# generator.summary()
+# discriminator.summary()
 
-generator.save_weights('./weights/star')
-discriminator.save_weights('./weights/star')
+generator.save_weights(f"./weights/{NAME}Gen")
+discriminator.save_weights(f"./weights/{NAME}Disc")
 
-print_test()
+def test_discriminator(star):
+    print( discriminator(np.asarray([star])) )
+
+test_discriminator(gen_star())
+test_discriminator([0.5, 0.6, 0.7, 0.8, 0.5, 0.5, 0.6, 0.7, 0.8, 0.5])
+
+#draw_polygon(np.asarray(generator(np.asarray([[-1., -2., 0.5, 65, 52, 65]]))).tolist()[0])
+draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size)).tolist()[0]))
+draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size)).tolist()[0]))
+draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size)).tolist()[0]))
