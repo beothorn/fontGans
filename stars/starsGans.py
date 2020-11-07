@@ -11,11 +11,11 @@ import math
 
 # Hyperparams
 
-EPOCHS = 40
+EPOCHS = 2
 UPDATE_RATE_FOR_EPOCH = 10
 noise_array_size = 6
-BATCH_SIZE = 800
-NUMBER_OF_BATCHES = 80
+BATCH_SIZE = 2
+NUMBER_OF_BATCHES = 5
 GEN_LEARNING_RATE = 0.01
 DISCRIMINATOR_LEARNING_RATE = 0.001
 NAME = "Star"
@@ -75,7 +75,7 @@ print("Generating values")
 number_of_values = BATCH_SIZE * NUMBER_OF_BATCHES
 print(f"Will generate {number_of_values}")
 
-for i in range(BATCH_SIZE * NUMBER_OF_BATCHES):
+for i in range((BATCH_SIZE * NUMBER_OF_BATCHES) - 1):
     values_x = np.append(values_x, [gen_star()], axis=0)
     values_y = np.append(values_y, [1], axis=0)
 
