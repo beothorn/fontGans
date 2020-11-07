@@ -1,0 +1,2 @@
+model_checkpoint_path: "StarDisc"
+all_model_checkpoint_paths: "StarDisc"

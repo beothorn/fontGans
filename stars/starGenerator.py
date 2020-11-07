@@ -39,42 +39,11 @@ generator = tf.keras.models.Sequential([
     Dense(100, activation='relu'),
     Dense(100, activation='relu'),
     Dense(100, activation='relu'),
-    Dense(100, activation='relu'),
+    Dense(10, activation='relu'),
     Dense(10, activation='sigmoid')
 ])
 
+generator.load_weights('./weights/StarDisc')
 
-discriminator = tf.keras.models.Sequential([
-    Dense(10, activation='relu', input_shape=(10, )),
-    Dense(10, activation='relu'),
-    Dense(20, activation='relu'),
-    Dense(20, activation='relu'),
-    Dense(20, activation='relu'),
-    Dense(30, activation='relu'),
-    Dense(30, activation='relu'),
-    Dense(30, activation='relu'),
-    Dense(30, activation='relu'),
-    Dense(50, activation='relu'),
-    Dense(50, activation='relu'),
-    Dense(50, activation='relu'),
-    Dense(50, activation='relu'),
-    Dense(80, activation='relu'),
-    Dense(80, activation='relu'),
-    Dense(80, activation='relu'),
-    Dense(80, activation='relu'),
-    Dense(100, activation='relu'),
-    Dense(100, activation='relu'),
-    Dense(100, activation='relu'),
-    Dense(100, activation='relu'),
-    Dense(1, activation='sigmoid')
-])
-
-generator.load_weights('./weights/star')
-discriminator.load_weights('./weights/star')
-
-draw_polygon(np.asarray(generator(np.asarray([[-1., -2.]]))).tolist()[0])
-draw_polygon(np.asarray(generator(np.asarray([[1.2, 5.]]))).tolist()[0])
-draw_polygon(np.asarray(generator(np.asarray([[2.4, 0.]]))).tolist()[0])
-draw_polygon(np.asarray(generator(np.asarray([[3.8, 0.]]))).tolist()[0])
-draw_polygon(np.asarray(generator(np.asarray([[10., 0.]]))).tolist()[0])
+draw_polygon(np.asarray(generator(np.asarray([[-1., -2., 12, 2, 4, 5]]))).tolist()[0])
 

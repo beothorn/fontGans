@@ -11,15 +11,18 @@ import math
 
 # Hyperparams
 
-EPOCHS = 2
+EPOCHS = 40
 UPDATE_RATE_FOR_EPOCH = 10
 noise_array_size = 6
-BATCH_SIZE = 2
-NUMBER_OF_BATCHES = 5
+BATCH_SIZE = 800
+NUMBER_OF_BATCHES = 80
 GEN_LEARNING_RATE = 0.01
 DISCRIMINATOR_LEARNING_RATE = 0.001
 NAME = "Star"
 
+
+physical_devices = tf.config.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 # ====================
 
@@ -256,6 +259,6 @@ test_discriminator(gen_star())
 test_discriminator([0.5, 0.6, 0.7, 0.8, 0.5, 0.5, 0.6, 0.7, 0.8, 0.5])
 
 #draw_polygon(np.asarray(generator(np.asarray([[-1., -2., 0.5, 65, 52, 65]]))).tolist()[0])
-draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size)).tolist()[0]))
-draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size)).tolist()[0]))
-draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size)).tolist()[0]))
+draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size))).tolist()[0])
+draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size))).tolist()[0])
+draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size))).tolist()[0])
