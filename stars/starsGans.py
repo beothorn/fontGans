@@ -11,13 +11,13 @@ import math
 
 # Hyperparams
 
-EPOCHS = 80
+EPOCHS = 0
 UPDATE_RATE_FOR_EPOCH = 10
 noise_array_size = 6
 BATCH_SIZE = 800
 NUMBER_OF_BATCHES = 80
-GEN_LEARNING_RATE = 0.01
-DISCRIMINATOR_LEARNING_RATE = 0.01
+GEN_LEARNING_RATE = 0.001
+DISCRIMINATOR_LEARNING_RATE = 0.001
 NAME = "Star"
 
 
@@ -25,7 +25,6 @@ physical_devices = tf.config.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 # ====================
-
 
 def draw_polygon(star):
     print(star)
@@ -78,9 +77,10 @@ print("Generating values")
 number_of_values = BATCH_SIZE * NUMBER_OF_BATCHES
 print(f"Will generate {number_of_values}")
 
-for i in range((BATCH_SIZE * NUMBER_OF_BATCHES) - 1):
-    values_x = np.append(values_x, [gen_star()], axis=0)
-    values_y = np.append(values_y, [1], axis=0)
+if EPOCHS > 0:
+    for i in range((BATCH_SIZE * NUMBER_OF_BATCHES) - 1):
+        values_x = np.append(values_x, [gen_star()], axis=0)
+        values_y = np.append(values_y, [1], axis=0)
 
 print("Done generating values")
 
@@ -263,8 +263,10 @@ test_discriminator(gen_star())
 test_discriminator([0.5, 0.6, 0.7, 0.8, 0.5, 0.5, 0.6, 0.7, 0.8, 0.5])
 
 #draw_polygon(np.asarray(generator(np.asarray([[-1., -2., 0.5, 65, 52, 65]]))).tolist()[0])
-draw_polygon(np.asarray(generator(np.asarray([[-100., -200., 102, 2, 4, 5]]))).tolist()[0])
-draw_polygon(np.asarray(generator(np.asarray([[4., 15., -56, 556, 2, 23]]))).tolist()[0])
+# draw_polygon(np.asarray(generator(np.asarray([[-100., -200., 102, 2, 4, 5]]))).tolist()[0])
+# draw_polygon(np.asarray(generator(np.asarray([[4., 15., -56, 556, 2, 23]]))).tolist()[0])
 draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size))).tolist()[0])
-# draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size))).tolist()[0])
-# draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size))).tolist()[0])
+draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size))).tolist()[0])
+draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size))).tolist()[0])
+draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size))).tolist()[0])
+draw_polygon(np.asarray(generator(np.random.rand(1, noise_array_size))).tolist()[0])
