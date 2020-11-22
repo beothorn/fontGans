@@ -15,7 +15,8 @@ def draw_polygon(star):
 
 def gen_star():
     # [10, 10, 20, 30, 30, 10, 10, 20, 40, 20]
-    border = 0.01
+    min_size = 0.1
+    border = min_size + 0.01
     width = 1
     height = 1
 
@@ -28,7 +29,7 @@ def gen_star():
     right_distance = width - rx
 
     max_radius = min(top_distance, bottom_distance, left_distance, right_distance)
-    radius = max(border, max_radius * random.random())
+    radius = max(min_size, max_radius * random.random())
 
     r_ang = random.random() * math.pi * 2
     increase = (math.tau * 3) / 5
@@ -40,8 +41,21 @@ def gen_star():
 
     for i in range(4):
         r_ang = r_ang + increase
-        result.append(rx + (math.cos(r_ang) * radius))
-        result.append(ry + (math.sin(r_ang) * radius))
+        ending_point_x = rx + (math.cos(r_ang) * radius)
+        ending_point_y = ry + (math.sin(r_ang) * radius)
+
+        from_origin_end_x = ending_point_x - starting_point_x
+        from_origin_end_y = ending_point_y - starting_point_y
+
+        for in_between_points in range(10):
+            result.append((from_origin_end_x * (in_between_points/10)) + starting_point_x)
+            result.append((from_origin_end_y * (in_between_points/10)) + + starting_point_y)
+
+        result.append(ending_point_x)
+        result.append(ending_point_y)
+        starting_point_x = ending_point_x
+        starting_point_y = ending_point_y
+
 
     return result
 
